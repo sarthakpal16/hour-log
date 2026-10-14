@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Hour Log</title>
+  <meta name="description" content="Log hours and see them on a GitHub-style calendar.">
+  <meta name="theme-color" content="#f6f8fa" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0d1117" media="(prefers-color-scheme: dark)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Hour Log">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="styles.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <main class="app">
+    <header class="top">
+      <h1>Hour Log</h1>
+      <p id="year-total" class="muted"></p>
+    </header>
+
+    <section class="stats" aria-label="Summary">
+      <div class="stat"><span class="stat-value" id="stat-today">0h</span><span class="stat-label">Today</span></div>
+      <div class="stat"><span class="stat-value" id="stat-week">0h</span><span class="stat-label">This week</span></div>
+      <div class="stat"><span class="stat-value" id="stat-month">0h</span><span class="stat-label">This month</span></div>
+      <div class="stat"><span class="stat-value" id="stat-streak">0</span><span class="stat-label">Day streak</span></div>
+    </section>
+
+    <section class="card" aria-label="Calendar">
+      <div class="heatmap-scroll" id="heatmap-scroll">
+        <div class="heatmap" id="heatmap"></div>
+      </div>
+      <div class="legend" aria-hidden="true">
+        <span>Less</span><i class="l0"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i><span>More</span>
+      </div>
+    </section>
+
+    <section class="card day" aria-label="Selected day">
+      <div class="day-head">
+        <div>
+          <h2 id="day-title">Today</h2>
+          <p id="day-sub" class="muted"></p>
+        </div>
+        <button id="go-today" type="button" hidden>Back to today</button>
+      </div>
+      <div class="quick">
+        <button type="button" data-add="0.5">+30m</button>
+        <button type="button" data-add="1">+1h</button>
+        <button type="button" data-add="2">+2h</button>
+      </div>
+      <form id="add-form" class="add">
+        <input id="hours" type="number" inputmode="decimal" step="any" min="0.01" max="24" placeholder="Hours" aria-label="Hours">
+        <input id="note" type="text" maxlength="140" placeholder="Note (optional)" aria-label="Note">
+        <button type="submit" class="primary">Add</button>
+      </form>
+      <ul id="entries" class="entries"></ul>
+    </section>
+
+    <details class="card account" id="account">
+      <summary>Sync <span id="sync-status" class="pill"></span></summary>
+      <div id="not-configured">
+        <p class="muted">Sync isn’t set up. Add your Supabase URL and key to config.js to turn it on.</p>
+      </div>
+      <div id="signed-out" hidden>
+        <p class="muted">Sign in to sync your hours across devices. We’ll email you a one-time code.</p>
+        <form id="email-form" class="add">
+          <input id="email" type="email" autocomplete="email" placeholder="you@example.com" aria-label="Email" required>
+          <button type="submit" class="primary">Send code</button>
+        </form>
+        <form id="code-form" class="add" hidden>
+          <input id="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="Code from email" aria-label="Code" required>
+          <button type="submit" class="primary">Sign in</button>
+        </form>
+      </div>
+      <div id="signed-in" hidden>
+        <p>Signed in as <strong id="who"></strong></p>
+        <p class="muted" id="sync-detail"></p>
+        <div class="row">
+          <button id="sync-now" type="button">Sync now</button>
+          <button id="sign-out" type="button">Sign out</button>
+        </div>
+      </div>
+    </details>
+
+    <details class="card data">
+      <summary>Backup</summary>
+      <p class="muted">Export a copy of your hours now and then, or move them between devices by hand.</p>
+      <div class="row">
+        <button id="export" type="button">Export JSON</button>
+        <label class="button">Import JSON<input id="import" type="file" accept="application/json,.json" hidden></label>
+      </div>
+    </details>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+</body>
+</html>
