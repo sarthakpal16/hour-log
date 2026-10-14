@@ -67,15 +67,18 @@
         <p class="muted">Sync isn’t set up. Add your Supabase URL and key to config.js to turn it on.</p>
       </div>
       <div id="signed-out" hidden>
-        <p class="muted">Sign in to sync your hours across devices. We’ll email you a one-time code.</p>
+        <p class="muted">Sign in to sync your hours across devices. We’ll email you a sign-in link.</p>
         <form id="email-form" class="add">
           <input id="email" type="email" autocomplete="email" placeholder="you@example.com" aria-label="Email" required>
-          <button type="submit" class="primary">Send code</button>
+          <button type="submit" class="primary">Send link</button>
         </form>
-        <form id="code-form" class="add" hidden>
-          <input id="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="Code from email" aria-label="Code" required>
-          <button type="submit" class="primary">Sign in</button>
-        </form>
+        <div id="link-step" hidden>
+          <p class="muted"><strong>On iPhone:</strong> in the email, press and hold the sign-in link, tap <strong>Copy Link</strong>, and paste it here. Don’t tap the link, or it opens in Safari and can’t be used again.<br><strong>On a computer:</strong> just click the link.</p>
+          <form id="link-form" class="add">
+            <input id="link" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste link from email" aria-label="Sign-in link" required>
+            <button type="submit" class="primary">Sign in</button>
+          </form>
+        </div>
       </div>
       <div id="signed-in" hidden>
         <p>Signed in as <strong id="who"></strong></p>

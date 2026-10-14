@@ -288,19 +288,18 @@ let pendingEmail = '';
 $('email-form').addEventListener('submit', async (ev) => {
   ev.preventDefault();
   const email = $('email').value.trim();
-  const error = await withBusy(ev.submitter, () => account.sendCode(email));
+  const error = await withBusy(ev.submitter, () => account.sendLink(email));
   if (error) return toast(error);
   pendingEmail = email;
-  $('code-form').hidden = false;
-  $('code').focus();
-  toast('Check your email for a code');
+  $('link-step').hidden = false;
+  toast('Check your email for the sign-in link');
 });
-$('code-form').addEventListener('submit', async (ev) => {
+$('link-form').addEventListener('submit', async (ev) => {
   ev.preventDefault();
-  const error = await withBusy(ev.submitter, () => account.verifyCode(pendingEmail, $('code').value.trim()));
+  const error = await withBusy(ev.submitter, () => account.verify(pendingEmail, $('link').value));
   if (error) return toast(error);
-  $('code').value = '';
-  $('code-form').hidden = true;
+  $('link').value = '';
+  $('link-step').hidden = true;
   renderAccount();
   toast('Signed in');
 });
@@ -331,7 +330,7 @@ entries = await store.list();
 render();
 scrollHeatmapToEnd();
 renderAccount();
-account.init();
+account.init().then((error) => error && toast(error));
 
 if ('serviceWorker' in navigator && window.isSecureContext) {
   navigator.serviceWorker.register('sw.js').catch(() => {});

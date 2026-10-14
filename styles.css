@@ -207,7 +207,8 @@ input {
 .account summary, .data summary { cursor: pointer; font-weight: 600; }
 .account p, .data p { margin-top: 8px; }
 .account .add { margin-top: 12px; }
-#email, #code { flex: 1; }
+#email, #link { flex: 1; }
+#link-step { margin-top: 12px; }
 
 .pill {
   margin-left: 8px;

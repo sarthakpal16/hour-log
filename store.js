@@ -138,6 +138,35 @@ async function pull() {
   events.dispatchEvent(new CustomEvent('entries', { detail: list }));
 }
 
+// Upload whatever was logged on this device before signing in (upserts are idempotent).
+function onSignedIn() {
+  enqueue(readEntries().map((entry) => ({ type: 'upsert', entry })));
+  sync();
+}
+
+// The email link points at Supabase's /auth/v1/verify?token=<hash>&type=<type>.
+// Mail apps sometimes wrap links in their own redirect (e.g. Outlook Safe Links),
+// so also look one level into any URL-valued query parameter.
+function parseSignInLink(text) {
+  let url;
+  try {
+    url = new URL(text);
+  } catch {
+    return null;
+  }
+  for (let depth = 0; depth < 2 && url; depth++) {
+    const token = url.searchParams.get('token') || url.searchParams.get('token_hash');
+    if (token) return { token_hash: token, type: url.searchParams.get('type') || 'magiclink' };
+    const nested = [...url.searchParams.values()].find((v) => /^https?:\/\//.test(v));
+    try {
+      url = nested ? new URL(nested) : null;
+    } catch {
+      url = null;
+    }
+  }
+  return null;
+}
+
 export function sync() {
   if (!client || !user) return Promise.resolve();
   if (running) {
@@ -170,17 +199,28 @@ export const account = {
   user: () => user,
   pending: () => readOutbox().length,
 
+  // Returns an error message to show (e.g. an expired email link), or null.
   async init() {
-    if (!configured) return setStatus('local');
+    if (!configured) {
+      setStatus('local');
+      return null;
+    }
+    // Clicking the email link on a laptop lands back here with the session,
+    // or an error, in the URL hash.
+    const hash = new URLSearchParams(location.hash.slice(1));
+    const fromLink = hash.has('access_token');
+    const linkError = hash.get('error_description');
+    if (linkError) history.replaceState(null, '', location.pathname + location.search);
     try {
       const { createClient } = await import(SUPABASE_JS);
       client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-        auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
+        auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
       });
     } catch (err) {
       // Offline on a launch before the library was ever cached. Local logging still works.
       console.warn('Could not load Supabase', err);
-      return setStatus('offline');
+      setStatus('offline');
+      return null;
     }
     const { data } = await client.auth.getSession();
     user = data.session?.user ?? null;
@@ -192,25 +232,38 @@ export const account = {
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') sync();
     });
-    if (user) sync();
+    if (user && fromLink) onSignedIn();
+    else if (user) sync();
     else setStatus('signed-out');
+    return linkError ? `Sign-in link didn’t work: ${linkError}` : null;
   },
 
   // Returns an error message, or null on success.
-  async sendCode(email) {
+  async sendLink(email) {
     if (!client) return 'Sync is unavailable right now. Check your connection.';
-    const { error } = await client.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+    const { error } = await client.auth.signInWithOtp({
+      email,
+      options: { shouldCreateUser: true, emailRedirectTo: location.origin + location.pathname },
+    });
     return error ? error.message : null;
   },
 
-  async verifyCode(email, token) {
+  // Accepts the sign-in link copied from the email, or a numeric code if the
+  // email template ever includes one.
+  async verify(email, input) {
     if (!client) return 'Sync is unavailable right now. Check your connection.';
-    const { data, error } = await client.auth.verifyOtp({ email, token, type: 'email' });
+    const text = input.trim();
+    let params;
+    if (/^\d{6,10}$/.test(text)) {
+      params = { email, token: text, type: 'email' };
+    } else {
+      params = parseSignInLink(text);
+      if (!params) return 'That doesn’t look like the link from the email. Copy the whole link and try again.';
+    }
+    const { data, error } = await client.auth.verifyOtp(params);
     if (error) return error.message;
     user = data.user;
-    // Upload whatever was logged on this device before signing in (upserts are idempotent).
-    enqueue(readEntries().map((entry) => ({ type: 'upsert', entry })));
-    sync();
+    onSignedIn();
     return null;
   },
 
